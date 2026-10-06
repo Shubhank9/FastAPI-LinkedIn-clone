@@ -1,2 +1,8 @@
 fastapi
 uvicorn[standard]
+sqlalchemy          #ORM
+psycopg[binary]     #The PostgreSQL driver that allows Python to communicate with PostgreSQL
+pwdlib[argon2]      #pwdlib + Argon2 → securely hashes passwords
+PyJWT               #creates and verifies JWT tokens
+python-dotenv
+alembic
