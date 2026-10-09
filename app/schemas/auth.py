@@ -22,7 +22,7 @@ class LoginRequest(BaseModel):
         max_length=100
     )
 
-
+    
 class UserResponse(BaseModel):
     id: int
     name: str
