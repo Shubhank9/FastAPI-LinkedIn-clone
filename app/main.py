@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.db.database import test_db_connection
 from app.routers import auth
 from app.routers import profile
+from app.routers import post
 
 
 @asynccontextmanager
@@ -29,9 +30,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-@app.get("/")
-def read_root():
-    return {"FastAPI : Linkedin clone project": "Welcome to the FastAPI LinkedIn clone project!"}
-
 app.include_router(auth.router)
 app.include_router(profile.router)
+app.include_router(post.router)
