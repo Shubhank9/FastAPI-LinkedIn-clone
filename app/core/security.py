@@ -1,10 +1,7 @@
 from datetime import datetime, timedelta, timezone
-
 import jwt
 from pwdlib import PasswordHash 
-
 from dotenv import load_dotenv
-
 from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
 
 

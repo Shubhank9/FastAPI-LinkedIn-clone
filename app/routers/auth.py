@@ -10,7 +10,8 @@ from app.db.database import get_db
 from app.schemas.auth import UserCreate , UserResponse , LoginRequest
 from app.schemas.common import APIResponse
 from app.models.user import User
-from app.core.security import hash_password, verify_password, create_access_token, verify_access_token  
+from app.core.security import hash_password, verify_password, create_access_token  
+from app.core.dependency import get_current_user
 
 router = APIRouter(
     prefix="/auth", 
@@ -19,14 +20,14 @@ router = APIRouter(
 
 @router.post(
     "/register",
-    response_model=APIResponse[UserResponse],
-    status_code=status.HTTP_201_CREATED
-)
+    response_model=APIResponse[UserResponse])
 def register_user (
     user_data : UserCreate,
     db : Session = Depends(get_db)
 ):
-    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    statement = select(User).where(User.email == user_data.email)
+    existing_user = db.execute(statement).scalars().first()
+
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -52,7 +53,9 @@ def register_user (
     )
 
 
-@router.post("/login")
+@router.post(
+        "/login",
+        response_model=APIResponse[UserResponse])
 def user_login(
   response : Response,  
   user_data :  LoginRequest ,
@@ -62,18 +65,10 @@ def user_login(
     result = db.execute(statement)
     user = result.scalars().first()
 
-    if not user:
+    if not user or not verify_password(user_data.password, user.password_hash):
         raise HTTPException(
-            status_code = 401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
-        )
-
-    is_password_valid = verify_password(user_data.password, user.password_hash)
-
-    if not is_password_valid:
-        raise HTTPException(
-            status_code=401,
-            detail="Password invalid"
         )
 
     access_token = create_access_token(user.id)
@@ -87,7 +82,39 @@ def user_login(
         max_age=30 * 60
     )
 
-    return {
-        "message" : "Login Successfull!!"
-    }
+    return APIResponse[UserResponse](
+        success=True,
+        message="Login successful",
+        status_code=status.HTTP_200_OK,
+        data=UserResponse.model_validate(user),
+    )
 
+@router.get("/me" , response_model=APIResponse[UserResponse])
+def get_user_details(
+    current_user : User = Depends(get_current_user)
+):
+    return APIResponse[UserResponse](
+            success=True,
+            message="User details found successfully!",
+            status_code=status.HTTP_200_OK,
+            data=UserResponse.model_validate(current_user),
+        )
+
+@router.post(
+        "/logout",
+        response_model=APIResponse[None])
+def user_logout(response: Response):
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+        httponly=True,
+        secure=True,
+        samesite="lax"
+    )
+
+    return APIResponse[None](
+        success=True,
+        message="Logout successful",
+        status_code=status.HTTP_200_OK,
+        data=None,
+    )
