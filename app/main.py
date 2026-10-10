@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.db.database import test_db_connection
 from app.routers import auth
+from app.routers import profile
 
 
 @asynccontextmanager
@@ -33,3 +34,4 @@ def read_root():
     return {"FastAPI : Linkedin clone project": "Welcome to the FastAPI LinkedIn clone project!"}
 
 app.include_router(auth.router)
+app.include_router(profile.router)
