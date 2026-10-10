@@ -37,3 +37,25 @@ def get_current_user(
         )
 
     return user
+
+
+
+def get_current_user_id(
+        access_token : Optional[str] = Cookie(default=None),
+):
+    if not access_token:
+        raise HTTPException(
+            status_code= status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required"
+        )
+    try:                                              
+        payload  = verify_access_token(access_token)
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+
+    user_id = int(payload.get("sub"))
+
+    return user_id

@@ -12,7 +12,7 @@ from app.schemas.common import APIResponse
 from app.models.profile import Profile
 from app.models.user import User
 from app.db.database import get_db
-from app.core.dependency import get_current_user
+from app.core.dependency import get_current_user_id
 
 
 router = APIRouter(
@@ -29,9 +29,9 @@ router = APIRouter(
 def profile_create(
     profile_data : ProfileCreate,
     db : Session = Depends(get_db),
-    current_user : User = Depends(get_current_user)
+    current_user_id : int = Depends(get_current_user_id)
 ):
-   statement = select(Profile).where(Profile.user_id == current_user.id)
+   statement = select(Profile).where(Profile.user_id == current_user_id)
    is_existing = db.execute(statement).scalars().first()
 
    if is_existing:
@@ -41,7 +41,7 @@ def profile_create(
       )
 
    profile = Profile(
-      user_id = current_user.id,
+      user_id = current_user_id,
       **profile_data.model_dump()
    )
 
@@ -64,9 +64,9 @@ def profile_create(
 )
 def get_profiles(
    db : Session = Depends(get_db),
-   current_user : User = Depends(get_current_user)
+   current_user_id : int = Depends(get_current_user_id)
 ):
-   statement = select(Profile).where(Profile.user_id == current_user.id)
+   statement = select(Profile).where(Profile.user_id == current_user_id)
    profile = db.execute(statement).scalars().first()
 
    if not profile:
@@ -90,9 +90,9 @@ def get_profiles(
    )
 def delete_profile(
    db : Session = Depends(get_db),
-   current_user = Depends(get_current_user)
+   current_user_id : int = Depends(get_current_user_id)
 ):
-   statement = select(Profile).where(Profile.user_id == current_user.id)
+   statement = select(Profile).where(Profile.user_id == current_user_id)
    profile = db.execute(statement).scalars().first()
 
    if not profile:
@@ -105,8 +105,49 @@ def delete_profile(
    db.commit()
 
    return APIResponse[None](
-      success= True,
-            message="Profile deleted successfully",
-            status_code=status.HTTP_200_OK,
-            data=None
+     success= True,
+     message="Profile deleted successfully",
+     status_code=status.HTTP_200_OK,
+     data=None
+   )
+
+
+@router.patch(
+   "/",
+   response_model=APIResponse[ProfileResponse],
+   status_code = status.HTTP_200_OK
+)
+def update_profile(
+   profile_data : ProfileUpdate,
+   db : Session = Depends(get_db),
+   current_user_id : int = Depends(get_current_user_id)
+):
+   statement = select(Profile).where(Profile.user_id == current_user_id)
+   profile = db.execute(statement).scalars().first()
+
+   if not profile:
+      raise HTTPException(
+         status_code=status.HTTP_404_NOT_FOUND,
+         detail = "The profile you are trying to update is not exist."
+      )
+
+   update_data = profile_data.model_dump(exclude_unset=True)
+
+   if not update_data:
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="No fields provided for update"
+    )
+
+   for key ,values in update_data.items():
+      setattr(profile, key, values)
+
+   db.commit()
+   db.refresh(profile)
+
+   return APIResponse[ProfileResponse](
+        success= True,
+        message="Profile updated successfully",
+        status_code=status.HTTP_200_OK,
+        data=ProfileResponse.model_validate(profile)
    )
