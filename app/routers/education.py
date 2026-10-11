@@ -8,9 +8,10 @@
 from fastapi import APIRouter , Depends , HTTPException , status
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.education import Education
+from app.models.institution import Institution
 from app.schemas.education import EducationCreate , EducationResponse , EducationUpdate
 from app.schemas.common import APIResponse
 from app.core.dependency import get_current_user_id , get_db
@@ -21,19 +22,31 @@ router = APIRouter(
     tags=["educations"]
 )
 
+
 @router.post(
     "/",
     response_model=APIResponse[EducationResponse],
     status_code=status.HTTP_201_CREATED
     )
 def education_create(
-    exp_data : EducationCreate,
+    edu_data : EducationCreate,
     db : Session = Depends(get_db),
     current_user_id : int = Depends(get_current_user_id)
 ):
+    statement = select(Institution).where(
+        Institution.id == edu_data.institution_id
+    )
+    institution = db.execute(statement).scalars().first()
+
+    if not institution:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Institution not found"
+        )
+
     edu = Education(
         user_id = current_user_id,
-        **exp_data.model_dump()
+        **edu_data.model_dump()
     )
 
     db.add(edu)
@@ -57,7 +70,9 @@ def get_educations(
     db : Session = Depends(get_db),
     current_user_id : int = Depends(get_current_user_id)
 ):
-    statement = select(Education).where(Education.user_id == current_user_id)
+    statement = select(Education).options(
+        joinedload(Education.institution)
+    ).where(Education.user_id == current_user_id)
     education = db.execute(statement).scalars().all()
 
     data = [EducationResponse.model_validate(edu) for edu in education]
@@ -79,7 +94,9 @@ def get_education_by_id(
     db : Session = Depends(get_db),
     current_user_id : int = Depends(get_current_user_id)
 ):
-    statement = select(Education).where(
+    statement = select(Education).options(
+        joinedload(Education.institution)
+    ).where(
         Education.id == edu_id,
         Education.user_id == current_user_id
     )
@@ -104,7 +121,7 @@ def get_education_by_id(
         status_code=status.HTTP_200_OK
 )
 def updated_education(
-    exp_data : EducationResponse,
+    edu_data : EducationUpdate,
     edu_id : int,
     db : Session = Depends(get_db),
     current_user_id : int = Depends(get_current_user_id)
@@ -122,13 +139,32 @@ def updated_education(
             detail="Education not found"
         )
 
-    update_data = exp_data.model_dump(exclude_unset=True)
+    update_data = edu_data.model_dump(exclude_unset=True)
 
     if not update_data:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No fields provided for update"
         )
+
+    if "institution_id" in update_data:
+        if update_data["institution_id"] is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="institution_id cannot be null"
+            )
+
+        statement = select(Institution).where(
+            Institution.id == update_data["institution_id"]
+        )
+        institution = db.execute(statement).scalars().first()
+
+        if not institution:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Institution not found"
+            )
+
     for key, value in update_data.items():
         setattr(education , key , value)
 
@@ -148,13 +184,14 @@ def updated_education(
     response_model=APIResponse[None],
     status_code=status.HTTP_200_OK
 )
-def delete_experience(
+def delete_education(
     edu_id: int,
     db: Session = Depends(get_db),
     current_user_id: int = Depends(get_current_user_id)
 ):
     statement = select(Education).where(
-        Education.id == edu_id
+        Education.id == edu_id,
+        Education.user_id == current_user_id
     )
     result = db.execute(statement).scalars().first()
 
@@ -162,12 +199,6 @@ def delete_experience(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Education not found"
-        )
-
-    if result.user_id != current_user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not allowed to perform this operation"
         )
 
     db.delete(result)

@@ -3,12 +3,11 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.institution import InstitutionResponse
+
 
 class EducationCreate(BaseModel):
-    institution: str = Field(
-        min_length=1,
-        max_length=255
-    )
+    institution_id: int
     degree: Optional[str] = Field(
         default=None,
         max_length=255
@@ -23,11 +22,7 @@ class EducationCreate(BaseModel):
 
 
 class EducationUpdate(BaseModel):
-    institution: Optional[str] = Field(
-        default=None,
-        min_length=1,
-        max_length=255
-    )
+    institution_id: Optional[int] = None
     degree: Optional[str] = Field(
         default=None,
         max_length=255
@@ -44,7 +39,8 @@ class EducationUpdate(BaseModel):
 class EducationResponse(BaseModel):
     id: int
     user_id: int
-    institution: str
+    institution_id: int
+    institution: InstitutionResponse
     degree: Optional[str]
     field_of_study: Optional[str]
     start_date: Optional[date]

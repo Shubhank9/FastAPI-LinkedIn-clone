@@ -2,6 +2,7 @@ from sqlalchemy import select
 
 from app.db.database import SessionLocal
 from app.models.company import Company
+from app.models.institution import Institution
 from app.models.skill import Skill
 
 
@@ -33,6 +34,20 @@ SKILLS = [
 ]
 
 
+INSTITUTIONS = [
+    "Indian Institute of Technology Bombay",
+    "Indian Institute of Technology Delhi",
+    "Indian Institute of Science",
+    "BITS Pilani",
+    "Delhi University",
+    "Massachusetts Institute of Technology",
+    "Stanford University",
+    "Harvard University",
+    "University of Oxford",
+    "University of Cambridge",
+]
+
+
 def seed_companies(db):
     for company_name in COMPANIES:
         existing_company = db.scalar(
@@ -61,12 +76,27 @@ def seed_skills(db):
             )
 
 
+def seed_institutions(db):
+    for institution_name in INSTITUTIONS:
+        existing_institution = db.scalar(
+            select(Institution).where(
+                Institution.name == institution_name
+            )
+        )
+
+        if not existing_institution:
+            db.add(
+                Institution(name=institution_name)
+            )
+
+
 def run_seed():
     db = SessionLocal()
 
     try:
         seed_companies(db)
         seed_skills(db)
+        seed_institutions(db)
 
         db.commit()
 

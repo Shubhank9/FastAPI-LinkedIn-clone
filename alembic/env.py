@@ -11,6 +11,7 @@ from app.models.user import User
 from app.models.profile import Profile
 from app.models.company import Company
 from app.models.experience import Experience
+from app.models.institution import Institution
 from app.models.education import Education
 from app.models.skill import Skill
 from app.models.user_skill import UserSkill

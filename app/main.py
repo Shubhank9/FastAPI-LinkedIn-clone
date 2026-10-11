@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.db.database import test_db_connection
-from app.routers import auth , profile , post , education , experience
+from app.routers import auth , profile , post , education , experience , skill , company , institution
 
 
 @asynccontextmanager
@@ -33,3 +33,7 @@ app.include_router(profile.router)
 app.include_router(post.router)
 app.include_router(experience.router)
 app.include_router(education.router)
+app.include_router(skill.skills_router)
+app.include_router(skill.user_skills_router)
+app.include_router(company.router)
+app.include_router(institution.router)
