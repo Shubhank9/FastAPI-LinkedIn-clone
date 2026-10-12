@@ -1,9 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
-
-from app.schemas.institution import InstitutionResponse
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class EducationCreate(BaseModel):
@@ -35,12 +33,19 @@ class EducationUpdate(BaseModel):
     end_date: Optional[date] = None
     description: Optional[str] = None
 
+    # institution_id may be left out of a PATCH, but if it is sent it can't be null
+    @field_validator("institution_id")
+    @classmethod
+    def institution_id_not_null(cls, value):
+        if value is None:
+            raise ValueError("institution_id cannot be null")
+        return value
+
 
 class EducationResponse(BaseModel):
     id: int
     user_id: int
     institution_id: int
-    institution: InstitutionResponse
     degree: Optional[str]
     field_of_study: Optional[str]
     start_date: Optional[date]

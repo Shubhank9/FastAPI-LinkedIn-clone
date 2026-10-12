@@ -2,10 +2,9 @@ from datetime import date, datetime
 from typing import Optional
 
 from sqlalchemy import Date, DateTime, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.institution import Institution
 
 
 class Education(Base):
@@ -65,6 +64,3 @@ class Education(Base):
         onupdate=datetime.now,
         nullable=False
     )
-
-    # many-to-one: each education belongs to exactly one institution
-    institution: Mapped[Institution] = relationship()

@@ -8,7 +8,7 @@
 from fastapi import APIRouter , Depends , HTTPException , status
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from app.models.education import Education
 from app.models.institution import Institution
@@ -70,9 +70,7 @@ def get_educations(
     db : Session = Depends(get_db),
     current_user_id : int = Depends(get_current_user_id)
 ):
-    statement = select(Education).options(
-        joinedload(Education.institution)
-    ).where(Education.user_id == current_user_id)
+    statement = select(Education).where(Education.user_id == current_user_id)
     education = db.execute(statement).scalars().all()
 
     data = [EducationResponse.model_validate(edu) for edu in education]
@@ -94,9 +92,7 @@ def get_education_by_id(
     db : Session = Depends(get_db),
     current_user_id : int = Depends(get_current_user_id)
 ):
-    statement = select(Education).options(
-        joinedload(Education.institution)
-    ).where(
+    statement = select(Education).where(
         Education.id == edu_id,
         Education.user_id == current_user_id
     )
@@ -148,12 +144,6 @@ def updated_education(
         )
 
     if "institution_id" in update_data:
-        if update_data["institution_id"] is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="institution_id cannot be null"
-            )
-
         statement = select(Institution).where(
             Institution.id == update_data["institution_id"]
         )
